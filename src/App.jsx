@@ -12,7 +12,7 @@ const API_BASE = process.env.REACT_APP_API_URL || "";
 // ── Helpers ───────────────────────────────────────────────────────────────
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-function ScoreRing({ value, color, size = 56, label }) {
+function ScoreRing({ value, color, size = 56, label }) { 
   const r = (size - 8) / 2;
   const circ = 2 * Math.PI * r;
   const pct = clamp(value ?? 0, 0, 100) / 100;
