@@ -3,7 +3,6 @@ import axios from "axios";
 import {
   Search, MessageSquare, ChevronDown, ChevronUp,
   Clock, MapPin, Wifi, TrendingUp, CheckCircle, AlertCircle,
-  XCircle, Loader2, Zap, BarChart2, ArrowRight
 } from "lucide-react";
 
 // ── Config ────────────────────────────────────────────────────────────────
