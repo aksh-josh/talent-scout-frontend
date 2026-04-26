@@ -376,30 +376,70 @@ export default function App() {
   // ── File parsing ──────────────────────────────────────────────────────────
   const extractTextFromFile = useCallback(async (file) => {
     const name = file.name.toLowerCase();
+
+    // Plain text files
     if (name.endsWith(".txt") || name.endsWith(".md")) {
       return await file.text();
     }
+
+    // PDF — load PDF.js from CDN dynamically
     if (name.endsWith(".pdf")) {
-      // Use PDF.js from CDN (loaded lazily)
-      const url = URL.createObjectURL(file);
-      const pdfjsLib = window.pdfjsLib;
-      if (!pdfjsLib) {
-        // Fallback: tell user to paste text
-        throw new Error("PDF parsing not available. Please paste the JD text directly.");
-      }
-      const pdf = await pdfjsLib.getDocument(url).promise;
-      let text = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        text += content.items.map(item => item.str).join(" ") + "\n";
-      }
-      return text;
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        script.onload = async () => {
+          try {
+            const pdfjsLib = window.pdfjsLib;
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let text = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              text += content.items.map(item => item.str).join(" ") + "\n";
+            }
+            resolve(text.trim());
+          } catch (e) {
+            reject(new Error("Could not read PDF. Try copy-pasting the text instead."));
+          }
+        };
+        script.onerror = () => reject(new Error("Failed to load PDF reader. Please paste the JD text directly."));
+        // If already loaded
+        if (window.pdfjsLib) {
+          script.onload();
+          return;
+        }
+        document.head.appendChild(script);
+      });
     }
-    if (name.endsWith(".docx")) {
-      throw new Error("For .docx files, please copy-paste the JD text into the box.");
+
+    // DOCX — load mammoth.js from CDN dynamically
+    if (name.endsWith(".docx") || name.endsWith(".doc")) {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
+        script.onload = async () => {
+          try {
+            const mammoth = window.mammoth;
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            resolve(result.value.trim());
+          } catch (e) {
+            reject(new Error("Could not read .docx file. Try copy-pasting the text instead."));
+          }
+        };
+        script.onerror = () => reject(new Error("Failed to load DOCX reader. Please paste the JD text directly."));
+        if (window.mammoth) {
+          script.onload();
+          return;
+        }
+        document.head.appendChild(script);
+      });
     }
-    throw new Error("Unsupported file type. Please use .txt, .pdf, or paste text directly.");
+
+    throw new Error("Unsupported file type. Please use .txt, .pdf, .docx, or paste text directly.");
   }, []);
 
   const handleFile = useCallback(async (file) => {
@@ -573,7 +613,7 @@ export default function App() {
               background:dragOver?"#0d1f2b":"transparent",
               transition:"all 0.2s"
             }}>
-            <input ref={fileRef} type="file" accept=".txt,.pdf,.md"
+            <input ref={fileRef} type="file" accept=".txt,.pdf,.md,.docx,.doc"
               style={{display:"none"}}
               onChange={e=>handleFile(e.target.files[0])}/>
             <Upload size={16} color="#4b5563"/>
@@ -588,7 +628,7 @@ export default function App() {
             ) : (
               <div>
                 <span style={{color:"#4b5563",fontSize:12}}>
-                  Drop a <strong style={{color:"#64748b"}}>.txt or .pdf</strong> JD file, or click to browse
+                  Drop a <strong style={{color:"#64748b"}}>.txt, .pdf, or .docx</strong> JD file, or click to browse
                 </span>
               </div>
             )}
@@ -715,4 +755,4 @@ export default function App() {
       </main>
     </div>
   );
-} 
+}
