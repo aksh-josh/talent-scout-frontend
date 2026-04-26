@@ -1,69 +1,125 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import axios from "axios";
 import {
   Search, ChevronDown, ChevronUp, Clock, MapPin, Wifi,
-  CheckCircle, AlertCircle, XCircle, Loader2, Zap,
+  CheckCircle, AlertCircle, XCircle, Loader2,
   BarChart2, ArrowRight, Upload, FileText, X, Download,
-  TrendingUp, Users, Target, MessageSquare
+  TrendingUp, Users, Target, MessageSquare, Sun, Moon,
+  Zap, Star, Award, Eye
 } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_API_URL || "";
 
+// ── Theme System ───────────────────────────────────────────────────────────
+const themes = {
+  dark: {
+    bg: "#0a0f1e",
+    bgCard: "#111827",
+    bgInput: "#0d1424",
+    bgHover: "#1a2235",
+    border: "#1f2d45",
+    borderAccent: "#2563eb",
+    text: "#f1f5f9",
+    textMuted: "#64748b",
+    textSub: "#94a3b8",
+    accent: "#3b82f6",
+    accentGreen: "#22c55e",
+    accentAmber: "#f59e0b",
+    accentRed: "#ef4444",
+    navBg: "rgba(10,15,30,0.95)",
+    shadow: "0 4px 24px rgba(0,0,0,0.4)",
+    scoreTrack: "#1e2a3a",
+    tagBg: "#1e3a5f",
+    tagText: "#60a5fa",
+    successBg: "#0d2b1a",
+    successBorder: "#16a34a",
+    successText: "#4ade80",
+  },
+  light: {
+    bg: "#f8fafc",
+    bgCard: "#ffffff",
+    bgInput: "#f1f5f9",
+    bgHover: "#e2e8f0",
+    border: "#e2e8f0",
+    borderAccent: "#2563eb",
+    text: "#0f172a",
+    textMuted: "#64748b",
+    textSub: "#475569",
+    accent: "#2563eb",
+    accentGreen: "#16a34a",
+    accentAmber: "#d97706",
+    accentRed: "#dc2626",
+    navBg: "rgba(248,250,252,0.95)",
+    shadow: "0 4px 24px rgba(0,0,0,0.08)",
+    scoreTrack: "#e2e8f0",
+    tagBg: "#dbeafe",
+    tagText: "#1d4ed8",
+    successBg: "#f0fdf4",
+    successBorder: "#86efac",
+    successText: "#16a34a",
+  }
+};
+
 // ── Score Ring ─────────────────────────────────────────────────────────────
-function ScoreRing({ value, color, size = 56, label }) {
+function ScoreRing({ value, color, size = 56, label, t }) {
   const r = (size - 8) / 2;
   const circ = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(value ?? 0, 100)) / 100;
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-      <div style={{ position: "relative", width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#1e2a3a" strokeWidth={6}/>
-          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={6}
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+      <div style={{ position:"relative", width:size, height:size }}>
+        <svg width={size} height={size} style={{ transform:"rotate(-90deg)" }}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={t.scoreTrack} strokeWidth={5}/>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={5}
             strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} strokeLinecap="round"
-            style={{transition:"stroke-dashoffset 0.8s ease"}}/>
+            style={{transition:"stroke-dashoffset 1s ease"}}/>
         </svg>
         <div style={{
           position:"absolute", inset:0, display:"flex", alignItems:"center",
-          justifyContent:"center", color, fontWeight:700, fontSize: size > 50 ? 14 : 11
+          justifyContent:"center", color, fontWeight:700, fontSize:size>50?13:10
         }}>
           {value != null ? Math.round(value) : "—"}
         </div>
       </div>
-      {label && <span style={{fontSize:9,color:"#6b7280",letterSpacing:1,textTransform:"uppercase"}}>{label}</span>}
+      {label && <span style={{fontSize:9,color:t.textMuted,letterSpacing:1,textTransform:"uppercase"}}>{label}</span>}
     </div>
   );
 }
 
 // ── Recommendation Badge ───────────────────────────────────────────────────
-function Badge({ label }) {
-  const map = {
-    "strong yes": { bg:"#0d2b1a", border:"#16a34a", text:"#4ade80", icon:<CheckCircle size={11}/> },
-    yes: { bg:"#0d1f2b", border:"#0ea5e9", text:"#38bdf8", icon:<CheckCircle size={11}/> },
-    maybe: { bg:"#1c1a0d", border:"#ca8a04", text:"#fbbf24", icon:<AlertCircle size={11}/> },
-    no: { bg:"#2b0d0d", border:"#dc2626", text:"#f87171", icon:<XCircle size={11}/> },
+function Badge({ label, t }) {
+  const configs = {
+    "strong yes": { bg:t.successBg, border:t.successBorder, text:t.successText, icon:<Award size={11}/> },
+    yes: { bg:t.tagBg, border:t.borderAccent, text:t.tagText, icon:<CheckCircle size={11}/> },
+    maybe: { bg:"#fefce8", border:"#fde047", text:"#ca8a04", icon:<AlertCircle size={11}/> },
+    no: { bg:"#fef2f2", border:"#fca5a5", text:"#dc2626", icon:<XCircle size={11}/> },
   };
-  const s = map[label?.toLowerCase()] || map.maybe;
+  if (t === themes.dark) {
+    configs.maybe = { bg:"#1c1a0d", border:"#ca8a04", text:"#fbbf24", icon:<AlertCircle size={11}/> };
+    configs.no = { bg:"#2b0d0d", border:"#dc2626", text:"#f87171", icon:<XCircle size={11}/> };
+  }
+  const s = configs[label?.toLowerCase()] || configs.maybe;
   return (
     <span style={{
       display:"inline-flex", alignItems:"center", gap:4,
       background:s.bg, border:`1px solid ${s.border}`, color:s.text,
       borderRadius:20, padding:"2px 10px", fontSize:10, fontWeight:700
     }}>
-      {s.icon} {label?.toUpperCase()}
+      {s.icon}{label?.toUpperCase()}
     </span>
   );
 }
 
 // ── Skill Pill ─────────────────────────────────────────────────────────────
-function SkillPill({ skill, highlighted }) {
+function SkillPill({ skill, highlighted, t }) {
   return (
     <span style={{
       display:"inline-block",
-      background: highlighted ? "#0d2b1a" : "#0f172a",
-      border:`1px solid ${highlighted ? "#16a34a" : "#1e2a3a"}`,
-      color: highlighted ? "#4ade80" : "#64748b",
-      borderRadius:6, padding:"2px 8px", fontSize:11, marginRight:4, marginBottom:4
+      background: highlighted ? t.successBg : t.bgInput,
+      border:`1px solid ${highlighted ? t.successBorder : t.border}`,
+      color: highlighted ? t.successText : t.textMuted,
+      borderRadius:6, padding:"2px 8px", fontSize:11, marginRight:4, marginBottom:4,
+      fontWeight: highlighted ? 600 : 400
     }}>
       {highlighted && "✓ "}{skill}
     </span>
@@ -71,26 +127,34 @@ function SkillPill({ skill, highlighted }) {
 }
 
 // ── Conversation Panel ─────────────────────────────────────────────────────
-function ConversationPanel({ turns }) {
+function ConversationPanel({ turns, t }) {
   if (!turns?.length) return null;
-  const labels = { opening:"Opening", alignment:"Role Fit", motivation:"Motivation", logistics:"Logistics" };
+  const labels = { opening:"Opening", alignment:"Role Fit" };
   return (
     <div style={{marginTop:12}}>
-      <p style={{color:"#4b5563",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
+      <p style={{color:t.textMuted,fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontWeight:600}}>
         Simulated Outreach Conversation
       </p>
-      {turns.map((t,i) => (
-        <div key={i} style={{marginBottom:12}}>
-          <div style={{fontSize:9,color:"#374151",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>
-            — {labels[t.turn]||t.turn}
+      {turns.map((turn, i) => (
+        <div key={i} style={{marginBottom:14}}>
+          <div style={{fontSize:9,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:5,fontWeight:600}}>
+            {labels[turn.turn] || turn.turn}
           </div>
-          <div style={{background:"#0f172a",border:"1px solid #1e3a5f",borderRadius:8,padding:"8px 12px",marginBottom:4}}>
-            <p style={{fontSize:10,color:"#60a5fa",marginBottom:2,fontWeight:700}}>RECRUITER</p>
-            <p style={{fontSize:12,color:"#94a3b8",lineHeight:1.5}}>{t.recruiter}</p>
+          <div style={{
+            background: t === themes.dark ? "#0d1f3a" : "#eff6ff",
+            border:`1px solid ${t === themes.dark ? "#1e3a5f" : "#bfdbfe"}`,
+            borderRadius:"12px 12px 12px 2px", padding:"10px 14px", marginBottom:5
+          }}>
+            <p style={{fontSize:10,color:t.accent,marginBottom:3,fontWeight:700}}>RECRUITER</p>
+            <p style={{fontSize:12,color:t.textSub,lineHeight:1.6}}>{turn.recruiter}</p>
           </div>
-          <div style={{background:"#0a1628",border:"1px solid #1e3a2a",borderRadius:8,padding:"8px 12px",marginLeft:16}}>
-            <p style={{fontSize:10,color:"#4ade80",marginBottom:2,fontWeight:700}}>CANDIDATE</p>
-            <p style={{fontSize:12,color:"#94a3b8",lineHeight:1.5}}>{t.candidate}</p>
+          <div style={{
+            background: t === themes.dark ? "#0d2b1a" : "#f0fdf4",
+            border:`1px solid ${t === themes.dark ? "#16a34a" : "#bbf7d0"}`,
+            borderRadius:"12px 12px 2px 12px", padding:"10px 14px", marginLeft:20
+          }}>
+            <p style={{fontSize:10,color:t.accentGreen,marginBottom:3,fontWeight:700}}>CANDIDATE</p>
+            <p style={{fontSize:12,color:t.textSub,lineHeight:1.6}}>{turn.candidate}</p>
           </div>
         </div>
       ))}
@@ -99,85 +163,104 @@ function ConversationPanel({ turns }) {
 }
 
 // ── Candidate Card ─────────────────────────────────────────────────────────
-function CandidateCard({ c, rank, requiredSkills }) {
+function CandidateCard({ c, rank, requiredSkills, t }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("overview");
   const required = new Set((requiredSkills||[]).map(s=>s.toLowerCase()));
   const hasOutreach = c.conversation?.length > 0;
+  const isTop = rank === 1;
 
   return (
     <div style={{
-      background:"#0b1221", border:`1px solid ${rank<=3?"#1e3a5f":"#1e2a3a"}`,
-      borderRadius:12, overflow:"hidden", marginBottom:8,
-      transition:"all 0.2s", boxShadow: rank===1?"0 0 20px rgba(96,165,250,0.1)":""
+      background: t.bgCard,
+      border: `1px solid ${isTop ? t.accent : t.border}`,
+      borderRadius:14, overflow:"hidden", marginBottom:10,
+      boxShadow: isTop ? `0 0 0 1px ${t.accent}22, ${t.shadow}` : t.shadow,
+      transition:"all 0.2s"
     }}>
-      <div style={{padding:"14px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14}}
+      {isTop && (
+        <div style={{
+          background:`linear-gradient(90deg, ${t.accent}22, transparent)`,
+          padding:"6px 18px", borderBottom:`1px solid ${t.border}`,
+          display:"flex", alignItems:"center", gap:6
+        }}>
+          <Star size={11} color={t.accentAmber} fill={t.accentAmber}/>
+          <span style={{fontSize:10,color:t.accentAmber,fontWeight:700,letterSpacing:1}}>TOP MATCH</span>
+        </div>
+      )}
+
+      <div style={{padding:"16px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:14}}
         onClick={()=>setOpen(o=>!o)}>
         <div style={{
-          width:30,height:30,borderRadius:"50%",flexShrink:0,
-          background: rank<=3?"#0d2b1a":"#111827",
-          border:`1px solid ${rank===1?"#16a34a":rank<=3?"#0ea5e9":"#1f2937"}`,
+          width:32,height:32,borderRadius:"50%",flexShrink:0,
+          background: rank<=3 ? t.accent+"22" : t.bgInput,
+          border:`1.5px solid ${rank<=3 ? t.accent : t.border}`,
           display:"flex",alignItems:"center",justifyContent:"center",
-          color:rank===1?"#4ade80":rank<=3?"#38bdf8":"#6b7280",
-          fontWeight:700,fontSize:12
+          color:rank<=3?t.accent:t.textMuted, fontWeight:700, fontSize:12
         }}>{rank}</div>
 
         <div style={{flex:1,minWidth:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-            <span style={{color:"#f1f5f9",fontWeight:600,fontSize:14}}>{c.name}</span>
-            {c.recommendation && <Badge label={c.recommendation}/>}
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
+            <span style={{color:t.text,fontWeight:700,fontSize:14}}>{c.name}</span>
+            {c.recommendation && <Badge label={c.recommendation} t={t}/>}
           </div>
-          <div style={{color:"#475569",fontSize:11,marginTop:2}}>
+          <div style={{color:t.textMuted,fontSize:11}}>
             {c.title} · {c.experience_years}y · {c.location}
-            {c.open_to_remote && <span style={{color:"#0ea5e9",marginLeft:8}}>· Remote OK</span>}
+            {c.open_to_remote && (
+              <span style={{color:t.accent,marginLeft:8,fontSize:10,fontWeight:600}}>· Remote OK</span>
+            )}
           </div>
         </div>
 
-        <div style={{display:"flex",gap:16,alignItems:"center"}}>
-          <ScoreRing value={c.match_score} color="#60a5fa" size={48} label="Match"/>
-          {c.interest_score!=null && <ScoreRing value={c.interest_score} color="#4ade80" size={48} label="Interest"/>}
-          {c.combined_score!=null && <ScoreRing value={c.combined_score} color="#f59e0b" size={48} label="Combined"/>}
+        <div style={{display:"flex",gap:14,alignItems:"center"}}>
+          <ScoreRing value={c.match_score} color={t.accent} size={50} label="Match" t={t}/>
+          {c.interest_score != null && <ScoreRing value={c.interest_score} color={t.accentGreen} size={50} label="Interest" t={t}/>}
+          {c.combined_score != null && <ScoreRing value={c.combined_score} color={t.accentAmber} size={50} label="Combined" t={t}/>}
         </div>
 
-        {open ? <ChevronUp size={14} color="#4b5563"/> : <ChevronDown size={14} color="#4b5563"/>}
+        {open
+          ? <ChevronUp size={14} color={t.textMuted}/>
+          : <ChevronDown size={14} color={t.textMuted}/>
+        }
       </div>
 
       {open && (
-        <div style={{borderTop:"1px solid #1e2a3a",padding:"14px 18px"}}>
+        <div style={{borderTop:`1px solid ${t.border}`,padding:"14px 18px"}}>
           <div style={{display:"flex",gap:4,marginBottom:14,flexWrap:"wrap"}}>
-            {["overview","skills",...(hasOutreach?["conversation","analysis"]:[])].map(t=>(
-              <button key={t} onClick={()=>setTab(t)} style={{
-                padding:"4px 12px",borderRadius:6,border:"none",cursor:"pointer",
-                fontSize:11,fontWeight:600,textTransform:"capitalize",
-                background:tab===t?"#1e3a5f":"transparent",
-                color:tab===t?"#60a5fa":"#4b5563"
-              }}>{t}</button>
+            {["overview","skills",...(hasOutreach?["conversation","analysis"]:[])].map(tabName=>(
+              <button key={tabName} onClick={()=>setTab(tabName)} style={{
+                padding:"5px 14px", borderRadius:8, border:`1px solid ${tab===tabName?t.accent:t.border}`,
+                cursor:"pointer", fontSize:11, fontWeight:600, textTransform:"capitalize",
+                background: tab===tabName ? t.accent+"18" : "transparent",
+                color: tab===tabName ? t.accent : t.textMuted,
+                transition:"all 0.15s"
+              }}>{tabName}</button>
             ))}
           </div>
 
           {tab==="overview" && (
             <div>
-              <p style={{color:"#64748b",fontSize:12,lineHeight:1.6,marginBottom:10}}>{c.summary}</p>
-              <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:10}}>
-                <span style={{display:"flex",alignItems:"center",gap:5,color:"#475569",fontSize:11}}>
-                  <Clock size={11}/>{c.availability}
-                </span>
-                <span style={{display:"flex",alignItems:"center",gap:5,color:"#475569",fontSize:11}}>
-                  <MapPin size={11}/>{c.location}
-                </span>
-                {c.open_to_remote && (
-                  <span style={{display:"flex",alignItems:"center",gap:5,color:"#0ea5e9",fontSize:11}}>
-                    <Wifi size={11}/>Open to remote
+              <p style={{color:t.textSub,fontSize:12,lineHeight:1.7,marginBottom:12}}>{c.summary}</p>
+              <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:12}}>
+                {[
+                  {icon:<Clock size={11}/>, text:c.availability},
+                  {icon:<MapPin size={11}/>, text:c.location},
+                  ...(c.open_to_remote?[{icon:<Wifi size={11}/>, text:"Open to remote", color:t.accent}]:[])
+                ].map((item,i)=>(
+                  <span key={i} style={{display:"flex",alignItems:"center",gap:5,color:item.color||t.textMuted,fontSize:11}}>
+                    {item.icon}{item.text}
                   </span>
-                )}
+                ))}
               </div>
-              {c.match_reasons?.length>0 && (
-                <div style={{background:"#060d18",borderRadius:8,padding:10,border:"1px solid #1e2a3a"}}>
-                  <p style={{fontSize:10,color:"#374151",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Why matched</p>
+              {c.match_reasons?.length > 0 && (
+                <div style={{background:t.bgInput,borderRadius:10,padding:12,border:`1px solid ${t.border}`}}>
+                  <p style={{fontSize:10,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:8,fontWeight:600}}>
+                    Why matched
+                  </p>
                   {c.match_reasons.map((r,i)=>(
-                    <div key={i} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
-                      <ArrowRight size={10} color="#60a5fa" style={{marginTop:2}}/>
-                      <span style={{color:"#64748b",fontSize:11}}>{r}</span>
+                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:5}}>
+                      <ArrowRight size={10} color={t.accent} style={{marginTop:3,flexShrink:0}}/>
+                      <span style={{color:t.textSub,fontSize:12}}>{r}</span>
                     </div>
                   ))}
                 </div>
@@ -187,47 +270,47 @@ function CandidateCard({ c, rank, requiredSkills }) {
 
           {tab==="skills" && (
             <div>
-              <p style={{fontSize:10,color:"#374151",letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Skills</p>
-              {c.skills?.map((s,i)=><SkillPill key={i} skill={s} highlighted={required.has(s.toLowerCase())}/>)}
-              {c.skill_overlap?.length>0 && (
-                <p style={{fontSize:11,color:"#4ade80",marginTop:6}}>
-                  ✓ {c.skill_overlap.length} required skill{c.skill_overlap.length>1?"s":""} matched
+              <p style={{fontSize:10,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontWeight:600}}>Skills</p>
+              <div>{c.skills?.map((s,i)=><SkillPill key={i} skill={s} highlighted={required.has(s.toLowerCase())} t={t}/>)}</div>
+              {c.skill_overlap?.length > 0 && (
+                <p style={{fontSize:11,color:t.accentGreen,marginTop:8,fontWeight:600}}>
+                  ✓ {c.skill_overlap.length} of {requiredSkills?.length||0} required skills matched
                 </p>
               )}
             </div>
           )}
 
-          {tab==="conversation" && <ConversationPanel turns={c.conversation}/>}
+          {tab==="conversation" && <ConversationPanel turns={c.conversation} t={t}/>}
 
           {tab==="analysis" && c.interest_analysis && (
             <div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-                <div style={{background:"#0d2b1a",border:"1px solid #16a34a",borderRadius:8,padding:10}}>
-                  <p style={{fontSize:10,color:"#4ade80",marginBottom:6,letterSpacing:1}}>POSITIVE SIGNALS</p>
+                <div style={{background:t.successBg,border:`1px solid ${t.successBorder}`,borderRadius:10,padding:12}}>
+                  <p style={{fontSize:10,color:t.accentGreen,marginBottom:8,fontWeight:700,letterSpacing:1}}>✓ POSITIVE SIGNALS</p>
                   {c.interest_analysis.positive_signals?.map((s,i)=>(
-                    <div key={i} style={{display:"flex",gap:5,marginBottom:3}}>
-                      <CheckCircle size={10} color="#4ade80" style={{marginTop:2}}/>
-                      <span style={{color:"#86efac",fontSize:11}}>{s}</span>
-                    </div>
+                    <p key={i} style={{color:t.successText,fontSize:11,marginBottom:4,lineHeight:1.4}}>· {s}</p>
                   ))}
                 </div>
-                <div style={{background:"#1c1a0d",border:"1px solid #ca8a04",borderRadius:8,padding:10}}>
-                  <p style={{fontSize:10,color:"#fbbf24",marginBottom:6,letterSpacing:1}}>CONCERNS</p>
-                  {c.interest_analysis.concerns?.length>0
+                <div style={{
+                  background: t===themes.dark?"#1c1a0d":"#fffbeb",
+                  border:`1px solid ${t===themes.dark?"#ca8a04":"#fde047"}`,
+                  borderRadius:10,padding:12
+                }}>
+                  <p style={{fontSize:10,color:t.accentAmber,marginBottom:8,fontWeight:700,letterSpacing:1}}>⚠ CONCERNS</p>
+                  {c.interest_analysis.concerns?.length > 0
                     ? c.interest_analysis.concerns.map((s,i)=>(
-                        <div key={i} style={{display:"flex",gap:5,marginBottom:3}}>
-                          <AlertCircle size={10} color="#fbbf24" style={{marginTop:2}}/>
-                          <span style={{color:"#fde68a",fontSize:11}}>{s}</span>
-                        </div>
+                        <p key={i} style={{color:t.accentAmber,fontSize:11,marginBottom:4,lineHeight:1.4}}>· {s}</p>
                       ))
-                    : <span style={{color:"#4b5563",fontSize:11}}>No concerns raised</span>
+                    : <p style={{color:t.textMuted,fontSize:11}}>No concerns raised</p>
                   }
                 </div>
               </div>
               {c.interest_analysis.interest_reasoning && (
-                <div style={{background:"#060d18",borderRadius:8,padding:10,border:"1px solid #1e2a3a"}}>
-                  <p style={{fontSize:10,color:"#374151",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>AI Reasoning</p>
-                  <p style={{color:"#64748b",fontSize:12,lineHeight:1.5}}>{c.interest_analysis.interest_reasoning}</p>
+                <div style={{background:t.bgInput,borderRadius:10,padding:12,border:`1px solid ${t.border}`}}>
+                  <p style={{fontSize:10,color:t.textMuted,letterSpacing:1,textTransform:"uppercase",marginBottom:6,fontWeight:600}}>
+                    AI Reasoning
+                  </p>
+                  <p style={{color:t.textSub,fontSize:12,lineHeight:1.6}}>{c.interest_analysis.interest_reasoning}</p>
                 </div>
               )}
             </div>
@@ -245,54 +328,63 @@ function exportCSV(shortlist, jdTitle) {
     ...shortlist.map((c,i)=>[
       i+1, c.name, c.title, c.location, `${c.experience_years}y`,
       c.match_score, c.interest_score??"-", c.combined_score??c.match_score,
-      c.recommendation??"-", c.availability, c.skills?.join("; ")
+      c.recommendation??"-", c.availability,
+      `"${c.skills?.join("; ")||""}"`
     ])
   ];
   const csv = rows.map(r=>r.join(",")).join("\n");
-  const blob = new Blob([csv], {type:"text/csv"});
+  const blob = new Blob([csv],{type:"text/csv"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `shortlist-${jdTitle?.replace(/\s+/g,"-").toLowerCase()??"results"}.csv`;
+  a.download = `shortlist-${(jdTitle||"results").replace(/\s+/g,"-").toLowerCase()}.csv`;
   a.click();
 }
 
-// ── Loading Steps ──────────────────────────────────────────────────────────
+// ── Pipeline Step Indicator ────────────────────────────────────────────────
 const STEPS = [
-  { icon:<Search size={12}/>, label:"Parsing Job Description with AI" },
-  { icon:<BarChart2 size={12}/>, label:"Semantic candidate matching" },
-  { icon:<MessageSquare size={12}/>, label:"Simulating outreach conversations" },
-  { icon:<TrendingUp size={12}/>, label:"Scoring interest & ranking" },
+  {icon:<Eye size={12}/>,         label:"Parsing Job Description"},
+  {icon:<BarChart2 size={12}/>,   label:"Semantic candidate matching"},
+  {icon:<MessageSquare size={12}/>,label:"Simulating conversations"},
+  {icon:<TrendingUp size={12}/>,  label:"Scoring & ranking"},
 ];
 
-function LoadingState({ step }) {
+function PipelineLoader({ step, t }) {
   return (
-    <div style={{textAlign:"center",padding:"50px 0"}}>
+    <div style={{padding:"48px 0",textAlign:"center"}}>
       <div style={{
-        width:48,height:48,borderRadius:"50%",
-        background:"linear-gradient(135deg,#1e3a5f,#0d2b1a)",
-        border:"2px solid #60a5fa",
+        width:56,height:56,borderRadius:16,
+        background:`linear-gradient(135deg,${t.accent},${t.accentGreen})`,
         display:"flex",alignItems:"center",justifyContent:"center",
-        margin:"0 auto 24px",
-        animation:"spin 2s linear infinite"
+        margin:"0 auto 28px",
+        boxShadow:`0 8px 24px ${t.accent}44`,
+        animation:"pulse 2s ease-in-out infinite"
       }}>
-        <Zap size={20} color="#60a5fa"/>
+        <Zap size={24} color="#fff"/>
       </div>
-      <div style={{maxWidth:280,margin:"0 auto"}}>
+      <p style={{color:t.text,fontWeight:700,fontSize:15,marginBottom:24}}>
+        Scouting candidates...
+      </p>
+      <div style={{maxWidth:300,margin:"0 auto"}}>
         {STEPS.map((s,i)=>(
           <div key={i} style={{
-            display:"flex",alignItems:"center",gap:10,marginBottom:10,
-            opacity:i<=step?1:0.2,transition:"opacity 0.4s"
+            display:"flex",alignItems:"center",gap:12,marginBottom:12,
+            opacity:i<=step?1:0.25,transition:"opacity 0.4s"
           }}>
             <div style={{
-              width:22,height:22,borderRadius:"50%",flexShrink:0,
-              background:i<step?"#0d2b1a":i===step?"#1e3a5f":"#0f172a",
-              border:`1px solid ${i<step?"#16a34a":i===step?"#60a5fa":"#1e2a3a"}`,
+              width:24,height:24,borderRadius:8,flexShrink:0,
+              background:i<step?t.accentGreen+"22":i===step?t.accent+"22":t.bgInput,
+              border:`1px solid ${i<step?t.accentGreen:i===step?t.accent:t.border}`,
               display:"flex",alignItems:"center",justifyContent:"center",
-              color:i<step?"#4ade80":i===step?"#60a5fa":"#374151"
+              color:i<step?t.accentGreen:i===step?t.accent:t.textMuted
             }}>
-              {i<step?<CheckCircle size={11}/>:s.icon}
+              {i<step?<CheckCircle size={12}/>:s.icon}
             </div>
-            <span style={{color:i===step?"#f1f5f9":"#4b5563",fontSize:12,textAlign:"left"}}>{s.label}</span>
+            <span style={{color:i===step?t.text:t.textMuted,fontSize:12,textAlign:"left",fontWeight:i===step?600:400}}>
+              {s.label}
+            </span>
+            {i===step && (
+              <Loader2 size={12} color={t.accent} style={{marginLeft:"auto",animation:"spin 1s linear infinite",flexShrink:0}}/>
+            )}
           </div>
         ))}
       </div>
@@ -317,51 +409,51 @@ Requirements:
 - 2+ years hands-on with LLMs, RAG, or agent frameworks
 - Strong Python skills; FastAPI preferred
 - Experience with OpenAI API, Claude API, or HuggingFace
-- Familiarity with vector databases and embedding models
+- Familiarity with vector databases
 
 Nice to have: CrewAI, AutoGen, LangGraph, NLP background`,
 
 `Frontend Lead – Consumer Product
 
-Lead our frontend team building a world-class consumer product.
+Lead our frontend team building a world-class B2C product.
 
 Responsibilities:
 - Lead a team of 3 frontend engineers
-- Define component library and design system standards
-- Drive frontend architecture decisions (performance, SSR)
-- Partner with design to ship high-quality UI
+- Define component library and design system
+- Drive frontend architecture decisions
+- Partner with design for high-quality UI
 
 Requirements:
 - 5+ years frontend engineering
 - Deep React and TypeScript expertise
-- Next.js or similar SSR frameworks
-- Strong Tailwind CSS and performance optimization
-- Experience leading or mentoring engineers
+- Next.js, Tailwind CSS, performance optimization
+- Experience leading engineers
 
-Nice to have: Storybook, Figma proficiency`,
+Nice to have: Storybook, Figma, design systems`,
 
 `Site Reliability Engineer
 
-Join our platform team maintaining 99.99% uptime for 5M users.
+Join our platform team maintaining 99.99% uptime.
 
 Responsibilities:
-- Own incident response and postmortem processes
+- Own incident response and postmortems
 - Monitoring with Prometheus and Grafana
-- Manage Kubernetes clusters across AWS regions
+- Manage Kubernetes clusters on AWS
 - Infrastructure as code with Terraform
 
 Requirements:
 - 3+ years DevOps or SRE experience
 - Kubernetes and Docker expertise
-- AWS (EKS, RDS, S3)
-- Terraform or Pulumi
-- Python scripting skills`
+- AWS (EKS, RDS, S3), Python scripting`
 ];
 
 let sampleIdx = 0;
 
 // ── Main App ───────────────────────────────────────────────────────────────
 export default function App() {
+  const [isDark, setIsDark] = useState(true);
+  const t = isDark ? themes.dark : themes.light;
+
   const [jd, setJd] = useState("");
   const [topK, setTopK] = useState(10);
   const [outreachN, setOutreachN] = useState(3);
@@ -373,27 +465,25 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef();
 
-  // ── File parsing ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    document.body.style.background = t.bg;
+    document.body.style.transition = "background 0.3s";
+  }, [t.bg]);
+
+  // ── File parsing ─────────────────────────────────────────────────────────
   const extractTextFromFile = useCallback(async (file) => {
     const name = file.name.toLowerCase();
+    if (name.endsWith(".txt") || name.endsWith(".md")) return await file.text();
 
-    // Plain text files
-    if (name.endsWith(".txt") || name.endsWith(".md")) {
-      return await file.text();
-    }
-
-    // PDF — load PDF.js from CDN dynamically
     if (name.endsWith(".pdf")) {
       return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-        script.onload = async () => {
+        const loadPdf = async () => {
           try {
             const pdfjsLib = window.pdfjsLib;
             pdfjsLib.GlobalWorkerOptions.workerSrc =
               "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
             const arrayBuffer = await file.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
             let text = "";
             for (let i = 1; i <= pdf.numPages; i++) {
               const page = await pdf.getPage(i);
@@ -401,45 +491,34 @@ export default function App() {
               text += content.items.map(item => item.str).join(" ") + "\n";
             }
             resolve(text.trim());
-          } catch (e) {
-            reject(new Error("Could not read PDF. Try copy-pasting the text instead."));
-          }
+          } catch(e) { reject(new Error("Could not read PDF. Try pasting the text.")); }
         };
-        script.onerror = () => reject(new Error("Failed to load PDF reader. Please paste the JD text directly."));
-        // If already loaded
-        if (window.pdfjsLib) {
-          script.onload();
-          return;
-        }
-        document.head.appendChild(script);
+        if (window.pdfjsLib) { loadPdf(); return; }
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+        s.onload = loadPdf;
+        s.onerror = () => reject(new Error("PDF reader failed to load."));
+        document.head.appendChild(s);
       });
     }
 
-    // DOCX — load mammoth.js from CDN dynamically
     if (name.endsWith(".docx") || name.endsWith(".doc")) {
       return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
-        script.onload = async () => {
+        const loadDocx = async () => {
           try {
-            const mammoth = window.mammoth;
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer });
+            const result = await window.mammoth.extractRawText({arrayBuffer: await file.arrayBuffer()});
             resolve(result.value.trim());
-          } catch (e) {
-            reject(new Error("Could not read .docx file. Try copy-pasting the text instead."));
-          }
+          } catch(e) { reject(new Error("Could not read .docx. Try pasting the text.")); }
         };
-        script.onerror = () => reject(new Error("Failed to load DOCX reader. Please paste the JD text directly."));
-        if (window.mammoth) {
-          script.onload();
-          return;
-        }
-        document.head.appendChild(script);
+        if (window.mammoth) { loadDocx(); return; }
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js";
+        s.onload = loadDocx;
+        s.onerror = () => reject(new Error("DOCX reader failed to load."));
+        document.head.appendChild(s);
       });
     }
-
-    throw new Error("Unsupported file type. Please use .txt, .pdf, .docx, or paste text directly.");
+    throw new Error("Unsupported format. Use .txt, .pdf, or .docx");
   }, []);
 
   const handleFile = useCallback(async (file) => {
@@ -449,7 +528,7 @@ export default function App() {
       const text = await extractTextFromFile(file);
       setJd(text);
       setError(null);
-    } catch (e) {
+    } catch(e) {
       setError(e.message);
       setFileName(null);
     }
@@ -458,136 +537,162 @@ export default function App() {
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    handleFile(e.dataTransfer.files[0]);
   }, [handleFile]);
 
-  // ── Analyze ───────────────────────────────────────────────────────────────
+  // ── Analyze ──────────────────────────────────────────────────────────────
   async function handleAnalyze() {
     if (!jd.trim() || jd.length < 50) {
-      setError("Please enter a job description (min 50 characters).");
+      setError("Please enter a job description (minimum 50 characters).");
       return;
     }
-    setError(null);
-    setResult(null);
-    setLoading(true);
-    setLoadStep(0);
-    const t1 = setTimeout(()=>setLoadStep(1), 2000);
-    const t2 = setTimeout(()=>setLoadStep(2), 5000);
-    const t3 = setTimeout(()=>setLoadStep(3), 9000);
+    setError(null); setResult(null); setLoading(true); setLoadStep(0);
+    const t1 = setTimeout(()=>setLoadStep(1), 2500);
+    const t2 = setTimeout(()=>setLoadStep(2), 6000);
+    const t3 = setTimeout(()=>setLoadStep(3), 10000);
     try {
       const { data } = await axios.post(`${API_BASE}/analyze`, {
         jd_text: jd, top_k: topK, outreach_top_n: outreachN
       });
       setResult(data);
     } catch(e) {
-      setError(e.response?.data?.detail || "Request failed. Check if backend is running.");
+      setError(e.response?.data?.detail || "Request failed. The backend may be starting up — try again in 30 seconds.");
     } finally {
       clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
       setLoading(false); setLoadStep(0);
     }
   }
 
-  // ── Stats bar ─────────────────────────────────────────────────────────────
   const avgMatch = result?.shortlist?.length
     ? Math.round(result.shortlist.reduce((a,c)=>a+(c.match_score||0),0)/result.shortlist.length)
     : null;
-  const strongYes = result?.shortlist?.filter(c=>c.recommendation==="strong yes").length??0;
+  const strongYes = result?.shortlist?.filter(c=>c.recommendation==="strong yes").length ?? 0;
 
   return (
-    <div style={{minHeight:"100vh",background:"#060d18",color:"#f1f5f9",
-      fontFamily:"'DM Mono','Fira Code','Courier New',monospace"}}>
+    <div style={{minHeight:"100vh",background:t.bg,color:t.text,
+      fontFamily:"'DM Sans','Segoe UI',system-ui,sans-serif",transition:"all 0.3s"}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#060d18}
         @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-        textarea:focus,select:focus{outline:none}
-        button:active{transform:scale(0.98)}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.8;transform:scale(0.97)}}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        textarea:focus,select:focus,input:focus{outline:none}
+        button{transition:all 0.15s}
+        button:hover{filter:brightness(1.08)}
+        button:active{transform:scale(0.97)}
         ::-webkit-scrollbar{width:4px}
-        ::-webkit-scrollbar-track{background:#0b1221}
-        ::-webkit-scrollbar-thumb{background:#1e2a3a;border-radius:2px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:${t.border};border-radius:4px}
       `}</style>
 
       {/* Nav */}
       <nav style={{
-        borderBottom:"1px solid #1e2a3a",padding:"12px 28px",
+        borderBottom:`1px solid ${t.border}`,padding:"14px 32px",
         display:"flex",alignItems:"center",justifyContent:"space-between",
-        background:"rgba(6,13,24,0.95)",backdropFilter:"blur(12px)",
-        position:"sticky",top:0,zIndex:100
+        background:t.navBg,backdropFilter:"blur(16px)",
+        position:"sticky",top:0,zIndex:100,boxShadow:t.shadow
       }}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{
-            width:30,height:30,borderRadius:8,
-            background:"linear-gradient(135deg,#1d4ed8,#16a34a)",
-            display:"flex",alignItems:"center",justifyContent:"center"
+            width:34,height:34,borderRadius:10,
+            background:`linear-gradient(135deg,${t.accent},${t.accentGreen})`,
+            display:"flex",alignItems:"center",justifyContent:"center",
+            boxShadow:`0 4px 12px ${t.accent}44`
           }}>
-            <Zap size={16} color="#fff"/>
+            <Zap size={18} color="#fff"/>
           </div>
-          <span style={{fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:16,letterSpacing:-0.5}}>
-            TalentScout <span style={{color:"#60a5fa"}}>AI</span>
-          </span>
+          <div>
+            <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:18,letterSpacing:-0.5}}>
+              TalentScout
+            </span>
+            <span style={{color:t.accent,fontWeight:700,fontSize:18}}> AI</span>
+          </div>
         </div>
-        <div style={{display:"flex",gap:12,alignItems:"center"}}>
+
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
           {result && (
             <button onClick={()=>exportCSV(result.shortlist,result.jd_parsed?.title)} style={{
-              background:"transparent",border:"1px solid #1e2a3a",color:"#4b5563",
-              borderRadius:8,padding:"4px 12px",fontSize:11,cursor:"pointer",
-              display:"flex",alignItems:"center",gap:6
+              background:t.bgInput,border:`1px solid ${t.border}`,color:t.textMuted,
+              borderRadius:8,padding:"6px 14px",fontSize:11,cursor:"pointer",
+              display:"flex",alignItems:"center",gap:6,fontWeight:500
             }}>
-              <Download size={12}/> Export CSV
+              <Download size={12}/>Export CSV
             </button>
           )}
-          <span style={{
-            background:"#0d1f2b",border:"1px solid #0ea5e9",
-            color:"#38bdf8",borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:700
+          <button onClick={()=>setIsDark(!isDark)} style={{
+            background:t.bgInput,border:`1px solid ${t.border}`,
+            borderRadius:8,padding:"6px 10px",cursor:"pointer",
+            display:"flex",alignItems:"center",gap:6,color:t.textMuted,fontSize:11,fontWeight:500
           }}>
-            Catalyst · Deccan AI
+            {isDark ? <Sun size={14}/> : <Moon size={14}/>}
+            {isDark ? "Light" : "Dark"}
+          </button>
+          <span style={{
+            background:t.tagBg,border:`1px solid ${t.accent}44`,
+            color:t.tagText,borderRadius:20,padding:"4px 14px",fontSize:10,fontWeight:700,letterSpacing:0.5
+          }}>
+            CATALYST · DECCAN AI
           </span>
         </div>
       </nav>
 
-      <main style={{maxWidth:860,margin:"0 auto",padding:"32px 16px"}}>
-        {/* Hero */}
-        <div style={{marginBottom:28,textAlign:"center"}}>
+      <main style={{maxWidth:900,margin:"0 auto",padding:"36px 20px"}}>
+
+        {/* Hero Section */}
+        <div style={{textAlign:"center",marginBottom:36}}>
           <div style={{
             display:"inline-flex",alignItems:"center",gap:8,
-            background:"#0d1f2b",border:"1px solid #1e3a5f",
-            borderRadius:20,padding:"4px 16px",marginBottom:16,fontSize:11,color:"#60a5fa"
+            background:t.tagBg,border:`1px solid ${t.accent}44`,
+            borderRadius:20,padding:"5px 16px",marginBottom:18,
           }}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:"#60a5fa",
-              animation:"pulse 2s infinite"}}/>
-            AI Agent · Live
+            <div style={{
+              width:7,height:7,borderRadius:"50%",background:t.accentGreen,
+              animation:"pulse 2s infinite",boxShadow:`0 0 8px ${t.accentGreen}`
+            }}/>
+            <span style={{fontSize:11,color:t.tagText,fontWeight:600,letterSpacing:0.5}}>
+              AI Agent · Live · 4 Models in Fallback Chain
+            </span>
           </div>
           <h1 style={{
-            fontFamily:"Syne,sans-serif",fontWeight:800,fontSize:36,
-            lineHeight:1.1,letterSpacing:-1,marginBottom:10
+            fontFamily:"'Playfair Display',serif",
+            fontSize:40,fontWeight:700,lineHeight:1.15,
+            letterSpacing:-1,marginBottom:12,color:t.text
           }}>
-            AI-Powered Talent Scouting
+            AI-Powered Talent<br/>
+            <span style={{
+              background:`linear-gradient(135deg,${t.accent},${t.accentGreen})`,
+              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"
+            }}>Scouting & Engagement</span>
           </h1>
-          <p style={{color:"#475569",fontSize:13,maxWidth:480,margin:"0 auto"}}>
-            Paste or upload a Job Description → AI discovers, engages & scores candidates instantly
+          <p style={{color:t.textMuted,fontSize:14,maxWidth:520,margin:"0 auto",lineHeight:1.7}}>
+            Paste or upload a Job Description — our AI agent discovers candidates,
+            simulates recruiter conversations, and delivers a scored shortlist instantly.
           </p>
         </div>
 
-        {/* Stats if result */}
+        {/* Stats (when result available) */}
         {result && (
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24,animation:"fadeIn 0.4s ease"}}>
             {[
-              {icon:<Users size={14}/>,label:"Scanned",value:result.total_candidates_scanned,color:"#60a5fa"},
-              {icon:<Target size={14}/>,label:"Shortlisted",value:result.shortlist.length,color:"#4ade80"},
-              {icon:<TrendingUp size={14}/>,label:"Avg Match",value:`${avgMatch}%`,color:"#f59e0b"},
-              {icon:<CheckCircle size={14}/>,label:"Strong Yes",value:strongYes,color:"#4ade80"},
-            ].map((s,i)=>(
+              {icon:<Users size={16}/>,label:"Scanned",value:result.total_candidates_scanned,color:t.accent},
+              {icon:<Target size={16}/>,label:"Shortlisted",value:result.shortlist.length,color:t.accentGreen},
+              {icon:<TrendingUp size={16}/>,label:"Avg Match",value:`${avgMatch}%`,color:t.accentAmber},
+              {icon:<Award size={16}/>,label:"Strong Yes",value:strongYes,color:t.accentGreen},
+            ].map((stat,i)=>(
               <div key={i} style={{
-                background:"#0b1221",border:"1px solid #1e2a3a",borderRadius:10,
-                padding:"12px 14px",display:"flex",alignItems:"center",gap:10
+                background:t.bgCard,border:`1px solid ${t.border}`,
+                borderRadius:12,padding:"16px",
+                display:"flex",alignItems:"center",gap:12,boxShadow:t.shadow
               }}>
-                <div style={{color:s.color}}>{s.icon}</div>
+                <div style={{
+                  width:36,height:36,borderRadius:10,
+                  background:stat.color+"18",border:`1px solid ${stat.color}33`,
+                  display:"flex",alignItems:"center",justifyContent:"center",color:stat.color
+                }}>{stat.icon}</div>
                 <div>
-                  <div style={{color:s.color,fontWeight:700,fontSize:18}}>{s.value}</div>
-                  <div style={{color:"#374151",fontSize:10,textTransform:"uppercase",letterSpacing:1}}>{s.label}</div>
+                  <div style={{color:stat.color,fontWeight:700,fontSize:20,lineHeight:1}}>{stat.value}</div>
+                  <div style={{color:t.textMuted,fontSize:10,fontWeight:500,letterSpacing:0.5,textTransform:"uppercase",marginTop:2}}>{stat.label}</div>
                 </div>
               </div>
             ))}
@@ -596,92 +701,108 @@ export default function App() {
 
         {/* Input Panel */}
         <div style={{
-          background:"#0b1221",border:"1px solid #1e2a3a",borderRadius:14,
-          padding:20,marginBottom:16
+          background:t.bgCard,border:`1px solid ${t.border}`,
+          borderRadius:16,padding:24,marginBottom:16,boxShadow:t.shadow
         }}>
-          {/* File Upload Zone */}
+          {/* Drop Zone */}
           <div
             onDragOver={e=>{e.preventDefault();setDragOver(true)}}
             onDragLeave={()=>setDragOver(false)}
             onDrop={handleDrop}
             onClick={()=>fileRef.current.click()}
             style={{
-              border:`2px dashed ${dragOver?"#60a5fa":"#1e2a3a"}`,
-              borderRadius:10,padding:"14px 20px",
+              border:`2px dashed ${dragOver?t.accent:t.border}`,
+              borderRadius:12,padding:"16px 20px",
               display:"flex",alignItems:"center",gap:12,
-              cursor:"pointer",marginBottom:12,
-              background:dragOver?"#0d1f2b":"transparent",
+              cursor:"pointer",marginBottom:16,
+              background:dragOver?t.accent+"08":"transparent",
               transition:"all 0.2s"
             }}>
             <input ref={fileRef} type="file" accept=".txt,.pdf,.md,.docx,.doc"
-              style={{display:"none"}}
-              onChange={e=>handleFile(e.target.files[0])}/>
-            <Upload size={16} color="#4b5563"/>
+              style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
+            <div style={{
+              width:36,height:36,borderRadius:10,
+              background:t.accent+"18",border:`1px solid ${t.accent}44`,
+              display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0
+            }}>
+              <Upload size={16} color={t.accent}/>
+            </div>
             {fileName ? (
               <div style={{flex:1,display:"flex",alignItems:"center",gap:8}}>
-                <FileText size={13} color="#60a5fa"/>
-                <span style={{color:"#60a5fa",fontSize:12}}>{fileName}</span>
+                <FileText size={14} color={t.accent}/>
+                <span style={{color:t.accent,fontSize:13,fontWeight:500}}>{fileName}</span>
+                <span style={{color:t.accentGreen,fontSize:11,marginLeft:4}}>· Loaded ✓</span>
                 <button onClick={e=>{e.stopPropagation();setFileName(null);setJd("");}} style={{
-                  background:"transparent",border:"none",cursor:"pointer",color:"#4b5563",marginLeft:"auto"
-                }}><X size={13}/></button>
+                  background:"transparent",border:"none",cursor:"pointer",
+                  color:t.textMuted,marginLeft:"auto",padding:4
+                }}><X size={14}/></button>
               </div>
             ) : (
               <div>
-                <span style={{color:"#4b5563",fontSize:12}}>
-                  Drop a <strong style={{color:"#64748b"}}>.txt, .pdf, or .docx</strong> JD file, or click to browse
-                </span>
+                <p style={{color:t.textSub,fontSize:13,fontWeight:500}}>
+                  Drop your JD file here, or <span style={{color:t.accent}}>click to browse</span>
+                </p>
+                <p style={{color:t.textMuted,fontSize:11,marginTop:2}}>
+                  Supports .txt, .pdf, .docx — or paste text below
+                </p>
               </div>
             )}
           </div>
 
-          {/* Text area */}
+          {/* Text Input */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <label style={{fontSize:10,color:"#374151",letterSpacing:1,textTransform:"uppercase"}}>
+            <label style={{fontSize:11,color:t.textMuted,letterSpacing:0.5,textTransform:"uppercase",fontWeight:600}}>
               Job Description
             </label>
-            <button onClick={()=>{setJd(SAMPLE_JDS[sampleIdx%SAMPLE_JDS.length]);sampleIdx++;setFileName(null)}} style={{
-              background:"transparent",border:"1px solid #1e2a3a",color:"#4b5563",
-              borderRadius:6,padding:"2px 10px",fontSize:10,cursor:"pointer"
-            }}>
-              Load sample ({["AI Eng","Frontend","SRE"][sampleIdx%3]})
+            <button
+              onClick={()=>{setJd(SAMPLE_JDS[sampleIdx%SAMPLE_JDS.length]);sampleIdx++;setFileName(null)}}
+              style={{
+                background:t.tagBg,border:`1px solid ${t.accent}33`,color:t.tagText,
+                borderRadius:6,padding:"3px 12px",fontSize:11,cursor:"pointer",fontWeight:500
+              }}>
+              Sample: {["AI Engineer","Frontend Lead","SRE"][sampleIdx%3]}
             </button>
           </div>
-          <textarea value={jd} onChange={e=>setJd(e.target.value)}
-            placeholder="Paste your full job description here, or upload a file above..."
+          <textarea
+            value={jd} onChange={e=>setJd(e.target.value)}
+            placeholder="Paste your job description here... Include role title, responsibilities, required skills, and experience requirements for best results."
             style={{
-              width:"100%",minHeight:180,background:"#060d18",
-              border:"1px solid #1e2a3a",borderRadius:8,padding:12,
-              color:"#64748b",fontSize:12,lineHeight:1.6,resize:"vertical",
-              fontFamily:"inherit"
-            }}/>
+              width:"100%",minHeight:180,background:t.bgInput,
+              border:`1px solid ${t.border}`,borderRadius:10,padding:14,
+              color:t.text,fontSize:13,lineHeight:1.7,resize:"vertical",
+              fontFamily:"inherit",transition:"border-color 0.2s"
+            }}
+            onFocus={e=>e.target.style.borderColor=t.accent}
+            onBlur={e=>e.target.style.borderColor=t.border}
+          />
 
-          {/* Options */}
-          <div style={{display:"flex",gap:16,marginTop:14,flexWrap:"wrap",alignItems:"flex-end"}}>
-            <div>
-              <label style={{fontSize:10,color:"#374151",display:"block",marginBottom:4}}>Candidates</label>
-              <select value={topK} onChange={e=>setTopK(Number(e.target.value))} style={{
-                background:"#060d18",border:"1px solid #1e2a3a",color:"#64748b",
-                borderRadius:6,padding:"5px 10px",fontSize:12,fontFamily:"inherit"
-              }}>
-                {[5,10,15,20].map(n=><option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{fontSize:10,color:"#374151",display:"block",marginBottom:4}}>Outreach top-N</label>
-              <select value={outreachN} onChange={e=>setOutreachN(Number(e.target.value))} style={{
-                background:"#060d18",border:"1px solid #1e2a3a",color:"#64748b",
-                borderRadius:6,padding:"5px 10px",fontSize:12,fontFamily:"inherit"
-              }}>
-                {[1,2,3,5].map(n=><option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
+          {/* Controls */}
+          <div style={{display:"flex",gap:14,marginTop:16,flexWrap:"wrap",alignItems:"flex-end"}}>
+            {[
+              {label:"Candidates to retrieve",val:topK,set:setTopK,opts:[5,10,15,20]},
+              {label:"Run outreach on top",val:outreachN,set:setOutreachN,opts:[1,2,3,5]},
+            ].map((ctrl,i)=>(
+              <div key={i}>
+                <label style={{fontSize:10,color:t.textMuted,display:"block",marginBottom:5,fontWeight:500,letterSpacing:0.5,textTransform:"uppercase"}}>
+                  {ctrl.label}
+                </label>
+                <select value={ctrl.val} onChange={e=>ctrl.set(Number(e.target.value))} style={{
+                  background:t.bgInput,border:`1px solid ${t.border}`,color:t.text,
+                  borderRadius:8,padding:"7px 12px",fontSize:13,fontFamily:"inherit",cursor:"pointer"
+                }}>
+                  {ctrl.opts.map(n=><option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+            ))}
             <button onClick={handleAnalyze} disabled={loading} style={{
               marginLeft:"auto",
-              background:loading?"#1e2a3a":"linear-gradient(135deg,#1d4ed8,#1e40af)",
-              color:"#fff",border:"none",borderRadius:8,padding:"9px 24px",
-              fontSize:13,fontWeight:700,cursor:loading?"not-allowed":"pointer",
+              background:loading?t.bgInput:`linear-gradient(135deg,${t.accent},#1d4ed8)`,
+              color:loading?t.textMuted:"#fff",
+              border:`1px solid ${loading?t.border:t.accent}`,
+              borderRadius:10,padding:"10px 28px",
+              fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",
               display:"flex",alignItems:"center",gap:8,
-              boxShadow:loading?"none":"0 4px 12px rgba(29,78,216,0.4)"
+              boxShadow:loading?"none":`0 4px 16px ${t.accent}44`
             }}>
               {loading
                 ? <><Loader2 size={14} style={{animation:"spin 1s linear infinite"}}/>Scouting...</>
@@ -694,61 +815,75 @@ export default function App() {
         {/* Error */}
         {error && (
           <div style={{
-            background:"#2b0d0d",border:"1px solid #dc2626",borderRadius:8,
-            padding:"10px 14px",color:"#f87171",fontSize:12,marginBottom:16,
-            display:"flex",alignItems:"center",gap:8
+            background:t===themes.dark?"#2b0d0d":"#fef2f2",
+            border:`1px solid ${t.accentRed}`,borderRadius:10,
+            padding:"12px 16px",color:t.accentRed,fontSize:12,marginBottom:16,
+            display:"flex",alignItems:"flex-start",gap:10,animation:"fadeIn 0.3s"
           }}>
-            <XCircle size={14}/>{error}
+            <XCircle size={15} style={{flexShrink:0,marginTop:1}}/>
+            <span>{error}</span>
           </div>
         )}
 
-        {loading && <LoadingState step={loadStep}/>}
+        {/* Loading */}
+        {loading && (
+          <div style={{background:t.bgCard,border:`1px solid ${t.border}`,borderRadius:16,boxShadow:t.shadow}}>
+            <PipelineLoader step={loadStep} t={t}/>
+          </div>
+        )}
 
         {/* Results */}
         {result && !loading && (
-          <div>
-            {/* JD Summary */}
+          <div style={{animation:"fadeIn 0.4s ease"}}>
+            {/* JD Summary Card */}
             <div style={{
-              background:"#0b1221",border:"1px solid #1e2a3a",borderRadius:12,
-              padding:16,marginBottom:16
+              background:t.bgCard,border:`1px solid ${t.border}`,
+              borderRadius:14,padding:20,marginBottom:16,boxShadow:t.shadow
             }}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
                 <div>
-                  <p style={{fontSize:10,color:"#374151",letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Parsed JD</p>
-                  <p style={{color:"#f1f5f9",fontWeight:700,fontSize:16,marginBottom:2}}>{result.jd_parsed.title}</p>
-                  <p style={{color:"#475569",fontSize:11}}>
-                    {result.jd_parsed.seniority} · {result.jd_parsed.role_type} · {result.jd_parsed.experience_years_min}–{result.jd_parsed.experience_years_max}y exp
+                  <p style={{fontSize:10,color:t.textMuted,letterSpacing:0.5,textTransform:"uppercase",marginBottom:6,fontWeight:600}}>
+                    Parsed Job Description
+                  </p>
+                  <p style={{color:t.text,fontWeight:700,fontSize:18,marginBottom:4}}>{result.jd_parsed.title}</p>
+                  <p style={{color:t.textMuted,fontSize:12}}>
+                    {result.jd_parsed.seniority} · {result.jd_parsed.role_type} · {result.jd_parsed.experience_years_min}–{result.jd_parsed.experience_years_max} years exp
                   </p>
                 </div>
-                <div style={{textAlign:"right",fontSize:11,color:"#374151"}}>
-                  <span style={{color:"#60a5fa"}}>{result.total_candidates_scanned}</span> scanned ·{" "}
-                  <span style={{color:"#4ade80"}}>{result.outreach_conducted}</span> outreach
-                  {result.cached && <span style={{color:"#fbbf24",marginLeft:8}}>· cached</span>}
+                <div style={{textAlign:"right"}}>
+                  <p style={{fontSize:12,color:t.textMuted}}>
+                    <span style={{color:t.accent,fontWeight:700}}>{result.total_candidates_scanned}</span> scanned ·{" "}
+                    <span style={{color:t.accentGreen,fontWeight:700}}>{result.outreach_conducted}</span> outreach run
+                    {result.cached && <span style={{color:t.accentAmber,marginLeft:8,fontSize:10,fontWeight:600}}>⚡ CACHED</span>}
+                  </p>
                 </div>
               </div>
-              <div style={{marginTop:10}}>
-                {result.jd_parsed.required_skills?.map((s,i)=><SkillPill key={i} skill={s} highlighted/>)}
-                {result.jd_parsed.nice_to_have_skills?.map((s,i)=><SkillPill key={i} skill={s}/>)}
+              <div style={{marginTop:12}}>
+                {result.jd_parsed.required_skills?.map((s,i)=><SkillPill key={i} skill={s} highlighted t={t}/>)}
+                {result.jd_parsed.nice_to_have_skills?.map((s,i)=><SkillPill key={i} skill={s} t={t}/>)}
               </div>
             </div>
 
-            {/* Legend */}
-            <div style={{display:"flex",gap:16,marginBottom:12,flexWrap:"wrap"}}>
+            {/* Score Legend */}
+            <div style={{display:"flex",gap:20,marginBottom:14,flexWrap:"wrap",padding:"0 2px"}}>
               {[
-                {color:"#60a5fa",label:"Match — semantic + skill overlap"},
-                {color:"#4ade80",label:"Interest — from conversation"},
-                {color:"#f59e0b",label:"Combined — 55% match + 45% interest"},
+                {color:t.accent,label:"Match Score — semantic search + skill overlap + experience"},
+                {color:t.accentGreen,label:"Interest Score — from simulated conversation analysis"},
+                {color:t.accentAmber,label:"Combined Score — 55% match + 45% interest"},
               ].map((l,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"#374151"}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:l.color}}/>
+                <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:t.textMuted}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:l.color,flexShrink:0}}/>
                   {l.label}
                 </div>
               ))}
             </div>
 
-            {/* Cards */}
+            {/* Candidate Cards */}
             {result.shortlist.map((c,i)=>(
-              <CandidateCard key={c.id} c={c} rank={i+1} requiredSkills={result.jd_parsed.required_skills}/>
+              <CandidateCard
+                key={c.id} c={c} rank={i+1}
+                requiredSkills={result.jd_parsed.required_skills} t={t}
+              />
             ))}
           </div>
         )}
