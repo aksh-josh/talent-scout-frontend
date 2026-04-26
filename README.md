@@ -1,70 +1,113 @@
-# Getting Started with Create React App
+# TalentScout AI — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> React frontend for the AI-Powered Talent Scouting Agent  
+> Built for **Catalyst Hackathon by Deccan AI** · April 2026  
+> By **Akshat Joshi**
 
-## Available Scripts
+[![Vercel](https://img.shields.io/badge/Deployed-Vercel-black)](https://talent-scout-frontend-pi.vercel.app)
+[![React](https://img.shields.io/badge/React-18-blue)](https://react.dev)
 
-In the project directory, you can run:
+**Live URL:** https://talent-scout-frontend-pi.vercel.app
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## What This Does
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+A clean recruiter dashboard that connects to the TalentScout AI backend. Recruiters can:
 
-### `npm test`
+- **Paste or upload** a Job Description (supports .txt, .pdf, .docx)
+- **Configure** how many candidates to retrieve and how many to run outreach on
+- **View** a ranked shortlist with Match Score, Interest Score, and Combined Score
+- **Expand** each candidate to see: why they matched, their skills, the simulated conversation, and interest analysis
+- **Export** the full shortlist as a CSV
+- **Toggle** between dark and light mode
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## Features
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+| Feature | Description |
+|---|---|
+| File Upload | Drag & drop or browse — supports .txt, .pdf, .docx |
+| Dark/Light Mode | Toggle between themes |
+| Score Rings | Animated circular scores for Match, Interest, Combined |
+| Candidate Cards | Expandable cards with 4 tabs: Overview, Skills, Conversation, Analysis |
+| Stats Bar | Live stats: candidates scanned, shortlisted, avg match, strong yes count |
+| CSV Export | Download full shortlist as spreadsheet |
+| Pipeline Loader | Step-by-step progress animation during analysis |
+| JD Caching | Cached badge shown when result comes from cache (instant) |
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Local Setup
 
-### `npm run eject`
+### Prerequisites
+- Node.js 18+
+- Backend running (see talent-scout-backend repo)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Steps
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+# 1. Clone the repo
+git clone https://github.com/aksh-josh/talent-scout-frontend.git
+cd talent-scout-frontend
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# 2. Install dependencies
+npm install
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+# 3. Create environment file
+echo "REACT_APP_API_URL=http://localhost:8000" > .env
 
-## Learn More
+# 4. Start development server
+npm start
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Opens at `http://localhost:3000`
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Connect to live backend instead
 
-### Code Splitting
+```bash
+echo "REACT_APP_API_URL=https://web-production-c301c.up.railway.app" > .env
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+---
 
-### Analyzing the Bundle Size
+## Project Structure
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
+talent-scout-frontend/
+├── src/
+│   └── App.jsx              # Complete single-file React app
+├── public/
+│   └── index.html
+├── package.json
+└── vercel.json              # Vercel deployment config
+```
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## How It Works
 
-### Advanced Configuration
+1. User pastes JD text or uploads a file
+2. Frontend sends `POST /analyze` to the backend
+3. Backend runs the 4-agent AI pipeline (~30-60 seconds)
+4. Frontend renders the ranked shortlist with scores and details
+5. User can expand each candidate to view conversation and analysis
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
+## Environment Variables
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+| Variable | Description |
+|---|---|
+| `REACT_APP_API_URL` | Backend URL (Railway or localhost) |
 
-### `npm run build` fails to minify
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Deployment
+
+Deployed on Vercel. Push to `main` branch triggers automatic redeploy.
+
+**Live URL:** `https://talent-scout-frontend-pi.vercel.app`
+**Backend:** `https://web-production-c301c.up.railway.app`
