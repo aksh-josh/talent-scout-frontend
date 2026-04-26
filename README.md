@@ -110,4 +110,4 @@ talent-scout-frontend/
 Deployed on Vercel. Push to `main` branch triggers automatic redeploy.
 
 **Live URL:** `https://talent-scout-frontend-pi.vercel.app`
-**Backend:** `https://web-production-c301c.up.railway.app`
+**Backend:** `https://web-production-c301c.up.railway.app/docs`
