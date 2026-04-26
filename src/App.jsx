@@ -449,7 +449,6 @@ export default function App() {
   }
 
   // ── Stats bar ─────────────────────────────────────────────────────────────
-  const topCandidate = result?.shortlist?.[0];
   const avgMatch = result?.shortlist?.length
     ? Math.round(result.shortlist.reduce((a,c)=>a+(c.match_score||0),0)/result.shortlist.length)
     : null;
